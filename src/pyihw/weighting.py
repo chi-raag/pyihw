@@ -363,6 +363,9 @@ def ihw_convex(
         method="highs",
     )
 
+    if not result.success:
+        return np.ones(nbins)
+
     # --- Extract thresholds and convert to weights ---------------------------
     ts = result.x[nbins : 2 * nbins]
     ts = np.maximum(ts, 0.0)  # clip negative rounding artefacts

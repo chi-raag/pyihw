@@ -86,20 +86,22 @@ def _ihw_internal(
     if sorted_folds is None:
         sorted_folds = assign_folds(n, nfolds, rng)
 
-    unique_folds = np.unique(sorted_folds)
-    actual_nfolds = len(unique_folds)
-
     # --- Observed counts per group (the available data) -----------------------
     m_groups_available = np.bincount(sorted_groups, minlength=nbins).astype(np.intp)
 
     # --- Storage --------------------------------------------------------------
-    sorted_weights = np.ones(n, dtype=np.float64)
-    weight_matrix = np.ones((nbins, actual_nfolds), dtype=np.float64)
-    fold_lambdas = np.empty(actual_nfolds, dtype=np.float64)
+    sorted_weights = np.full(n, np.nan)
+    weight_matrix = np.full((nbins, nfolds), np.nan)
+    fold_lambdas = np.full(nfolds, np.nan)
 
     # --- Main fold loop -------------------------------------------------------
-    for fold_idx, fold_id in enumerate(unique_folds):
-        fold_mask = sorted_folds == fold_id
+    for fold_idx in range(nfolds):
+        fold_mask = sorted_folds == fold_idx
+
+        if not np.any(fold_mask):
+            # No hypotheses in this fold — leave uniform weights
+            weight_matrix[:, fold_idx] = 1.0
+            continue
         train_mask = ~fold_mask
 
         if nfolds == 1:

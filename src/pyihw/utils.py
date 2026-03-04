@@ -151,6 +151,13 @@ def grenander_estimator(
     -----
     Equivalent to ``fdrtool::gcmlcm(x, y, type="lcm")`` in R.
     """
+    if len(sorted_pvalues) == 0:
+        return GrenanderResult(
+            x_knots=np.array([0.0]),
+            y_knots=np.array([0.0]),
+            slopes=np.array([1.0]),
+        )
+
     unique_pvalues, counts = np.unique(sorted_pvalues, return_counts=True)
     ecdf_values = np.cumsum(counts) / m_total
 
