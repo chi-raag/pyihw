@@ -175,3 +175,75 @@ def test_public_imports() -> None:
     assert callable(ihw)
     assert callable(bh_threshold)
     assert IHWResult is not None
+
+
+class TestRReference:
+    """Compare ihw_convex output against R IHW package on the same inputs."""
+
+    def test_lp_weights_match_r(self) -> None:
+        """With identical bin assignments, the LP solver should match R within 1e-5."""
+        from pathlib import Path
+
+        import csv
+
+        data_dir = Path(__file__).parent / "data"
+
+        # Load p-values from R reference
+        pvalues = []
+        with open(data_dir / "r_reference.csv") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                pvalues.append(float(row["pvalue"]))
+        pv = np.array(pvalues)
+
+        # Load R group assignments (1-indexed in R)
+        r_groups = []
+        with open(data_dir / "r_groups_single_fold.csv") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                r_groups.append(int(row["group"]))
+        groups = np.array(r_groups) - 1  # convert to 0-indexed
+
+        # Sort and split by R's groups
+        order = np.argsort(pv)
+        sorted_pvalues = pv[order]
+        sorted_groups = groups[order]
+        nbins = 10
+        m_groups = np.bincount(sorted_groups, minlength=nbins)
+        split_sorted_pvalues = [
+            np.sort(sorted_pvalues[sorted_groups == g]) for g in range(nbins)
+        ]
+
+        from pyihw.weighting import ihw_convex
+
+        ws = ihw_convex(
+            split_sorted_pvalues=split_sorted_pvalues,
+            alpha=0.1,
+            m_groups=m_groups,
+            m_groups_grenander=m_groups,
+            penalty="total_variation",
+            lambda_=np.inf,
+            adjustment_type="bh",
+        )
+
+        # R reference weights (nfolds=1, lambda=Inf, nbins=10)
+        r_weights = np.array(
+            [
+                0.000000,
+                0.032857,
+                0.053412,
+                0.079898,
+                0.011118,
+                1.447015,
+                1.818260,
+                2.563411,
+                2.070199,
+                1.923829,
+            ]
+        )
+
+        np.testing.assert_allclose(ws, r_weights, atol=1e-5)
+        # Weight constraint
+        np.testing.assert_allclose(
+            np.sum(ws * m_groups) / np.sum(m_groups), 1.0, atol=1e-6
+        )
