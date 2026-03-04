@@ -1,8 +1,9 @@
 [project]
 name = "pyihw"
 version = "0.1.0"
-description = "Add your description here"
+description = "Independent Hypothesis Weighting for large-scale multiple testing"
 readme = "README.md"
+license = "MIT"
 authors = [
     { name = "Chiraag Gohel", email = "37530396+chi-raag@users.noreply.github.com" }
 ]

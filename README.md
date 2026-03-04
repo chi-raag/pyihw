@@ -73,3 +73,23 @@ Pass an `rng` argument to get deterministic results:
 ``` python
 result = ihw(pvalues, covariates, alpha=0.1, rng=np.random.default_rng(42))
 ```
+
+## Dependencies
+
+NumPy and SciPy only.
+
+## Acknowledgments
+
+pyIHW is a Python reimplementation of the
+[IHW](https://bioconductor.org/packages/IHW/) R/Bioconductor package by
+Nikolaos Ignatiadis and Wolfgang Huber. The method is described in:
+
+> Ignatiadis, N., Klaus, B., Zaugg, J.B. et al. Data-driven hypothesis
+> weighting increases detection power in genome-scale multiple testing.
+> *Nature Methods* 13, 577–580 (2016).
+> [doi:10.1038/nmeth.3885](https://doi.org/10.1038/nmeth.3885)
+
+The bundled airway dataset is from Himes et al. (2014), *PLoS ONE* 9(6):
+e99625 ([GEO
+GSE52778](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE52778)),
+processed through [DESeq2](https://bioconductor.org/packages/DESeq2/).
