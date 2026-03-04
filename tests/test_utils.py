@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from pyihw.utils import bh_adjust, bh_threshold, safe_divide
+from pyihw.utils import bh_adjust, bh_threshold, grenander_estimator, safe_divide
 
 
 class TestBhThreshold:
@@ -72,3 +72,34 @@ class TestSafeDivide:
         np.testing.assert_array_equal(
             safe_divide(np.array([0.8]), np.array([0.5])), [1.0]
         )
+
+
+class TestGrenanderEstimator:
+    def test_uniform_pvalues(self) -> None:
+        rng = np.random.default_rng(42)
+        pvalues = np.sort(rng.uniform(size=10000))
+        result = grenander_estimator(pvalues, m_total=10000)
+        assert np.all(result.slopes >= 0.8)
+        assert np.all(result.slopes <= 1.4)
+
+    def test_knots_are_sorted(self) -> None:
+        rng = np.random.default_rng(42)
+        pvalues = np.sort(rng.beta(0.5, 7, size=500))
+        result = grenander_estimator(pvalues, m_total=500)
+        assert np.all(np.diff(result.x_knots) > 0)
+        assert np.all(np.diff(result.y_knots) >= 0)
+
+    def test_slopes_are_nonincreasing(self) -> None:
+        rng = np.random.default_rng(42)
+        pvalues = np.sort(rng.beta(0.5, 7, size=500))
+        result = grenander_estimator(pvalues, m_total=500)
+        assert np.all(np.diff(result.slopes) <= 1e-12)
+
+    def test_m_total_larger_than_sample(self) -> None:
+        pvalues = np.sort(np.array([0.01, 0.02, 0.05, 0.1, 0.3]))
+        result = grenander_estimator(pvalues, m_total=100)
+        assert result.y_knots[-1] <= 0.06
+
+    def test_single_pvalue(self) -> None:
+        result = grenander_estimator(np.array([0.5]), m_total=1)
+        assert len(result.slopes) >= 1

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import dataclasses
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -106,3 +108,84 @@ def safe_divide(
         ),
     )
     return result
+
+
+@dataclasses.dataclass(frozen=True)
+class GrenanderResult:
+    """Result of the Grenander estimator (least concave majorant of ECDF).
+
+    Parameters
+    ----------
+    x_knots : NDArray[np.float64]
+        X-coordinates of the LCM knot points (left endpoints of segments).
+    y_knots : NDArray[np.float64]
+        Y-coordinates of the LCM knot points.
+    slopes : NDArray[np.float64]
+        Slope of each LCM segment. Slopes are non-increasing (concave).
+    """
+
+    x_knots: NDArray[np.float64]
+    y_knots: NDArray[np.float64]
+    slopes: NDArray[np.float64]
+
+
+def grenander_estimator(
+    sorted_pvalues: NDArray[np.float64],
+    m_total: int,
+) -> GrenanderResult:
+    """Compute the Grenander estimator: least concave majorant of the ECDF.
+
+    Parameters
+    ----------
+    sorted_pvalues : NDArray[np.float64]
+        P-values sorted in ascending order within a single stratum.
+    m_total : int
+        Total number of hypotheses in this stratum.
+
+    Returns
+    -------
+    GrenanderResult
+        Knot coordinates and slopes of the piecewise-linear LCM.
+
+    Notes
+    -----
+    Equivalent to ``fdrtool::gcmlcm(x, y, type="lcm")`` in R.
+    """
+    unique_pvalues, counts = np.unique(sorted_pvalues, return_counts=True)
+    ecdf_values = np.cumsum(counts) / m_total
+
+    if unique_pvalues[0] > 0:
+        unique_pvalues = np.concatenate(([0.0], unique_pvalues))
+        ecdf_values = np.concatenate(([0.0], ecdf_values))
+
+    if unique_pvalues[-1] < 1.0 and ecdf_values[-1] < 1.0:
+        unique_pvalues = np.concatenate((unique_pvalues, [1.0]))
+        ecdf_values = np.concatenate((ecdf_values, [1.0]))
+
+    # Upper convex hull for least concave majorant
+    hull_x: list[float] = [float(unique_pvalues[0])]
+    hull_y: list[float] = [float(ecdf_values[0])]
+
+    for i in range(1, len(unique_pvalues)):
+        while len(hull_x) >= 2:
+            dx1 = hull_x[-1] - hull_x[-2]
+            dy1 = hull_y[-1] - hull_y[-2]
+            dx2 = float(unique_pvalues[i]) - hull_x[-1]
+            dy2 = float(ecdf_values[i]) - hull_y[-1]
+            if dy1 * dx2 <= dy2 * dx1:
+                hull_x.pop()
+                hull_y.pop()
+            else:
+                break
+        hull_x.append(float(unique_pvalues[i]))
+        hull_y.append(float(ecdf_values[i]))
+
+    hull_x_arr = np.array(hull_x)
+    hull_y_arr = np.array(hull_y)
+    slopes = np.diff(hull_y_arr) / np.diff(hull_x_arr)
+
+    return GrenanderResult(
+        x_knots=hull_x_arr[:-1],
+        y_knots=hull_y_arr[:-1],
+        slopes=slopes,
+    )
