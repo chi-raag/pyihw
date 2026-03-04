@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from pyihw.weighting import thresholds_to_weights, total_variation, uniform_deviation
+from pyihw.weighting import (
+    ihw_convex,
+    thresholds_to_weights,
+    total_variation,
+    uniform_deviation,
+)
 
 
 class TestThresholdsToWeights:
@@ -49,3 +54,107 @@ class TestPenalties:
     def test_uniform_deviation_known(self) -> None:
         ws = np.array([0.5, 1.5, 1.0])
         np.testing.assert_allclose(uniform_deviation(ws), 1.0)
+
+
+class TestIhwConvex:
+    def test_lambda_zero_returns_uniform(self) -> None:
+        rng = np.random.default_rng(42)
+        split_pvalues = [np.sort(rng.uniform(size=100)) for _ in range(3)]
+        m_groups = np.array([100, 100, 100])
+        ws = ihw_convex(
+            split_sorted_pvalues=split_pvalues,
+            alpha=0.1,
+            m_groups=m_groups,
+            m_groups_grenander=m_groups,
+            penalty="total_variation",
+            lambda_=0.0,
+            adjustment_type="bh",
+        )
+        np.testing.assert_array_equal(ws, [1.0, 1.0, 1.0])
+
+    def test_weight_constraint_bh(self) -> None:
+        rng = np.random.default_rng(42)
+        signal_p = np.sort(rng.beta(0.3, 5, size=200))
+        null_p = np.sort(rng.uniform(size=200))
+        split_pvalues = [signal_p, null_p]
+        m_groups = np.array([200, 200])
+        ws = ihw_convex(
+            split_sorted_pvalues=split_pvalues,
+            alpha=0.1,
+            m_groups=m_groups,
+            m_groups_grenander=m_groups,
+            penalty="total_variation",
+            lambda_=np.inf,
+            adjustment_type="bh",
+        )
+        np.testing.assert_allclose(
+            np.sum(ws * m_groups) / np.sum(m_groups), 1.0, atol=1e-6
+        )
+
+    def test_weight_constraint_bonferroni(self) -> None:
+        rng = np.random.default_rng(42)
+        signal_p = np.sort(rng.beta(0.3, 5, size=200))
+        null_p = np.sort(rng.uniform(size=200))
+        split_pvalues = [signal_p, null_p]
+        m_groups = np.array([200, 200])
+        ws = ihw_convex(
+            split_sorted_pvalues=split_pvalues,
+            alpha=0.1,
+            m_groups=m_groups,
+            m_groups_grenander=m_groups,
+            penalty="total_variation",
+            lambda_=np.inf,
+            adjustment_type="bonferroni",
+        )
+        np.testing.assert_allclose(
+            np.sum(ws * m_groups) / np.sum(m_groups), 1.0, atol=1e-6
+        )
+
+    def test_signal_bin_gets_higher_weight(self) -> None:
+        rng = np.random.default_rng(42)
+        signal_p = np.sort(rng.beta(0.3, 5, size=500))
+        null_p = np.sort(rng.uniform(size=500))
+        split_pvalues = [signal_p, null_p]
+        m_groups = np.array([500, 500])
+        ws = ihw_convex(
+            split_sorted_pvalues=split_pvalues,
+            alpha=0.1,
+            m_groups=m_groups,
+            m_groups_grenander=m_groups,
+            penalty="total_variation",
+            lambda_=np.inf,
+            adjustment_type="bh",
+        )
+        assert ws[0] > ws[1]
+
+    def test_uniform_deviation_penalty(self) -> None:
+        rng = np.random.default_rng(42)
+        split_pvalues = [np.sort(rng.beta(0.5, 5, size=200)) for _ in range(3)]
+        m_groups = np.array([200, 200, 200])
+        ws = ihw_convex(
+            split_sorted_pvalues=split_pvalues,
+            alpha=0.1,
+            m_groups=m_groups,
+            m_groups_grenander=m_groups,
+            penalty="uniform_deviation",
+            lambda_=np.inf,
+            adjustment_type="bh",
+        )
+        np.testing.assert_allclose(
+            np.sum(ws * m_groups) / np.sum(m_groups), 1.0, atol=1e-6
+        )
+
+    def test_weights_are_nonnegative(self) -> None:
+        rng = np.random.default_rng(42)
+        split_pvalues = [np.sort(rng.uniform(size=200)) for _ in range(5)]
+        m_groups = np.array([200, 200, 200, 200, 200])
+        ws = ihw_convex(
+            split_sorted_pvalues=split_pvalues,
+            alpha=0.1,
+            m_groups=m_groups,
+            m_groups_grenander=m_groups,
+            penalty="total_variation",
+            lambda_=5.0,
+            adjustment_type="bh",
+        )
+        assert np.all(ws >= -1e-10)
