@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from pyihw.utils import bh_adjust, bh_threshold, grenander_estimator, safe_divide
+from pyihw.utils import (
+    bh_adjust,
+    bh_threshold,
+    grenander_estimator,
+    safe_divide,
+    weighted_storey_pi0,
+)
 
 
 class TestBhThreshold:
@@ -103,3 +109,28 @@ class TestGrenanderEstimator:
     def test_single_pvalue(self) -> None:
         result = grenander_estimator(np.array([0.5]), m_total=1)
         assert len(result.slopes) >= 1
+
+
+class TestWeightedStoreyPi0:
+    def test_all_null(self) -> None:
+        rng = np.random.default_rng(42)
+        pvalues = rng.uniform(size=10000)
+        weights = np.ones(10000)
+        pi0 = weighted_storey_pi0(pvalues, weights)
+        assert 0.9 < pi0 < 1.15
+
+    def test_half_signal(self) -> None:
+        rng = np.random.default_rng(42)
+        null_p = rng.uniform(size=5000)
+        signal_p = rng.beta(0.3, 5, size=5000)
+        pvalues = np.concatenate([null_p, signal_p])
+        weights = np.ones(10000)
+        pi0 = weighted_storey_pi0(pvalues, weights)
+        assert 0.3 < pi0 < 0.7
+
+    def test_weighted(self) -> None:
+        pvalues = np.array([0.1, 0.6, 0.8])
+        weights = np.array([2.0, 1.0, 0.5])
+        expected = 3.5 / 1.5
+        result = weighted_storey_pi0(pvalues, weights, tau=0.5, m=3)
+        np.testing.assert_allclose(result, expected)

@@ -189,3 +189,34 @@ def grenander_estimator(
         y_knots=hull_y_arr[:-1],
         slopes=slopes,
     )
+
+
+def weighted_storey_pi0(
+    pvalues: NDArray[np.float64],
+    weights: NDArray[np.float64],
+    tau: float = 0.5,
+    m: int | None = None,
+) -> float:
+    """Estimate the null proportion using a weighted Storey estimator.
+
+    Parameters
+    ----------
+    pvalues : NDArray[np.float64]
+        P-values.
+    weights : NDArray[np.float64]
+        Per-hypothesis weights.
+    tau : float
+        Threshold for the estimator. Defaults to 0.5.
+    m : int, optional
+        Total number of hypotheses. Defaults to ``len(pvalues)``.
+
+    Returns
+    -------
+    float
+        Estimated proportion of null hypotheses.
+    """
+    if m is None:
+        m = len(pvalues)
+    w_inf = float(np.max(weights))
+    numerator = w_inf + float(np.sum(weights * (pvalues > tau)))
+    return numerator / (m * (1.0 - tau))
