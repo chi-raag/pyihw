@@ -170,11 +170,48 @@ class TestIhwPublic:
 
 
 def test_public_imports() -> None:
-    from pyihw import IHWResult, bh_threshold, ihw
+    from pyihw import IHWResult, bh_threshold, ihw, load_airway
 
     assert callable(ihw)
     assert callable(bh_threshold)
+    assert callable(load_airway)
     assert IHWResult is not None
+
+
+def test_load_airway() -> None:
+    from pyihw import load_airway
+
+    pvalues, basemean = load_airway()
+    assert pvalues.shape == (33469,)
+    assert basemean.shape == (33469,)
+    assert pvalues.dtype == np.float64
+    assert basemean.dtype == np.float64
+    assert np.all(pvalues >= 0.0) and np.all(pvalues <= 1.0)
+    assert np.all(basemean >= 0.0)
+
+
+class TestAirway:
+    """Test IHW on real genomic data with extreme p-values."""
+
+    def test_more_rejections_than_bh(self) -> None:
+        """IHW must beat BH on the airway dataset (extreme p-values)."""
+        from pyihw import load_airway
+
+        pvalues, basemean = load_airway()
+        result = ihw(pvalues, basemean, alpha=0.1, rng=np.random.default_rng(42))
+        t_bh = bh_threshold(pvalues, alpha=0.1)
+        bh_rejections = int(np.sum(pvalues <= t_bh))
+        # R IHW gets ~4892 vs BH's 4099.  We should get a substantial gain.
+        assert result.n_rejections > bh_rejections + 100
+
+    def test_nonuniform_weights(self) -> None:
+        """Weights must vary across bins — uniform means the LP failed."""
+        from pyihw import load_airway
+
+        pvalues, basemean = load_airway()
+        result = ihw(pvalues, basemean, alpha=0.1, rng=np.random.default_rng(42))
+        assert result.weights.min() < 0.5
+        assert result.weights.max() > 1.5
 
 
 class TestRReference:

@@ -173,9 +173,13 @@ def ihw_convex(
     row_idx = 0
 
     # Grenander constraints: y_g - slope_k * t_g <= y_knot_k - slope_k * x_knot_k
+    # Cap slopes to avoid ill-conditioning — extreme slopes arise from p-values
+    # near zero and don't materially affect the LP solution.
+    _SLOPE_CAP = 1e12
     for g, gr in enumerate(grenander_list):
         n_knots = len(gr.slopes)
         for k in range(n_knots):
+            slope = min(float(gr.slopes[k]), _SLOPE_CAP)
             # y_g coefficient: +1
             rows.append(row_idx)
             cols.append(g)
@@ -183,11 +187,9 @@ def ihw_convex(
             # t_g coefficient: -slope_k
             rows.append(row_idx)
             cols.append(nbins + g)
-            vals.append(-float(gr.slopes[k]))
+            vals.append(-slope)
             # RHS: y_knot_k - slope_k * x_knot_k
-            rhs_list.append(
-                float(gr.y_knots[k]) - float(gr.slopes[k]) * float(gr.x_knots[k])
-            )
+            rhs_list.append(float(gr.y_knots[k]) - slope * float(gr.x_knots[k]))
             row_idx += 1
 
     # Objective: maximize sum(m_g / m * nbins * y_g)

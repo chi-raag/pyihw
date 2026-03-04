@@ -11,3 +11,7 @@ wheels/
 IHW/
 CLAUDE.md
 docs/
+
+# Quarto
+.quarto/
+README_files/

@@ -1,27 +1,24 @@
-# pyIHW
+---
+title: "pyIHW"
+format: gfm
+jupyter: python3
+---
 
+Python implementation of [Independent Hypothesis Weighting](https://bioconductor.org/packages/IHW/) (IHW) by Ignatiadis & Huber (2016, *Nature Methods*).
 
-Python implementation of [Independent Hypothesis
-Weighting](https://bioconductor.org/packages/IHW/) (IHW) by Ignatiadis &
-Huber (2016, *Nature Methods*).
-
-IHW improves power in large-scale multiple testing by learning
-data-driven weights from an independent covariate while controlling FDR
-at a user-specified level.
+IHW improves power in large-scale multiple testing by learning data-driven weights from an independent covariate while controlling FDR at a user-specified level.
 
 ## Installation
 
-``` bash
+```bash
 pip install pyihw
 ```
 
 ## Quick start
 
-pyIHW ships with DESeq2 results from the
-[airway](https://bioconductor.org/packages/airway/) RNA-seq dataset
-(Himes et al. 2014):
+pyIHW ships with DESeq2 results from the [airway](https://bioconductor.org/packages/airway/) RNA-seq dataset (Himes et al. 2014):
 
-``` python
+```{python}
 import numpy as np
 from pyihw import ihw, load_airway, bh_threshold
 
@@ -29,12 +26,9 @@ pvalues, basemean = load_airway()
 print(f"{len(pvalues)} hypotheses")
 ```
 
-    33469 hypotheses
+Run IHW with baseMean as the covariate and compare to standard Benjamini-Hochberg:
 
-Run IHW with baseMean as the covariate and compare to standard
-Benjamini-Hochberg:
-
-``` python
+```{python}
 result = ihw(pvalues, basemean, alpha=0.1, rng=np.random.default_rng(42))
 
 t_bh = bh_threshold(pvalues, alpha=0.1)
@@ -45,13 +39,9 @@ print(f"IHW rejections: {result.n_rejections}")
 print(f"Improvement:    +{result.n_rejections - bh_rejections} discoveries")
 ```
 
-    BH rejections:  4099
-    IHW rejections: 4876
-    Improvement:    +777 discoveries
-
 ## Parameters
 
-``` python
+```python
 ihw(
     pvalues,
     covariates,
@@ -70,6 +60,10 @@ ihw(
 
 Pass an `rng` argument to get deterministic results:
 
-``` python
+```python
 result = ihw(pvalues, covariates, alpha=0.1, rng=np.random.default_rng(42))
 ```
+
+## Dependencies
+
+NumPy and SciPy only.
