@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "pyihw"
+abstract: "Python implementation of Independent Hypothesis Weighting for large-scale multiple testing"
+version: 0.2.0
+date-released: 2026-03-23
+license: MIT
+url: "https://github.com/chi-raag/pyihw"
+repository-code: "https://github.com/chi-raag/pyihw"
+authors:
+  - family-names: Gohel
+    given-names: Chiraag
+    alias: chi-raag
+keywords:
+  - multiple-testing
+  - false-discovery-rate
+  - independent-hypothesis-weighting
+  - bioinformatics
+  - statistics
+  - python
+references:
+  - type: article
+    title: "Data-driven hypothesis weighting increases detection power in genome-scale multiple testing"
+    authors:
+      - family-names: Ignatiadis
+        given-names: Nikolaos
+      - family-names: Klaus
+        given-names: Bernd
+      - family-names: Zaugg
+        given-names: Judith B.
+      - family-names: Huber
+        given-names: Wolfgang
+    journal: "Nature Methods"
+    volume: 13
+    issue: 7
+    start: 577
+    end: 580
+    year: 2016
+    doi: "10.1038/nmeth.3885"

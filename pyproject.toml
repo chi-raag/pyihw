@@ -13,6 +13,9 @@ dependencies = [
     "scipy>=1.17.1",
 ]
 
+[project.urls]
+GitHub = "https://github.com/chi-raag/pyihw"
+
 [build-system]
 requires = ["uv_build>=0.9.28,<0.10.0"]
 build-backend = "uv_build"

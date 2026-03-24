@@ -15,3 +15,7 @@ docs/
 # Quarto
 .quarto/
 README_files/
+
+# Example caches and outputs
+examples/st002183/.cache/
+examples/st002183/results/
